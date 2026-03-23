@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,9 +25,6 @@
 }
 
 html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; }
-
-.page { display: none; }
-.page.on { display: block; }
 
 /* ═══ HEADER ══════════════════════════════════ */
 .hdr {
@@ -61,36 +57,24 @@ html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', s
 .btn.go:hover { background: #a8780e; }
 .btn.red { color: #c44; border-color: #f0c0c0; }
 .btn.red:hover { background: #fff5f5; border-color: #c44; }
+.btn.share {
+  background: linear-gradient(135deg, #1a4fa0, #c41230);
+  color: #fff; border: none;
+  display: none; /* hidden until bracket complete */
+  animation: pulse-glow .15s ease;
+}
+.btn.share.visible { display: inline-flex; align-items: center; gap: 5px; }
+.btn.share:hover { opacity: .88; }
+@keyframes pulse-glow {
+  0% { transform: scale(.85); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 /* progress */
 .prog { display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--dim); }
 .prog-track { width: 90px; height: 4px; background: var(--faint); border-radius: 2px; overflow: hidden; }
 .prog-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--W), var(--E)); transition: width .3s; }
-
-/* ═══════════════════════════════════════════════
-   PAGE 1 — TEAM SETUP
-═══════════════════════════════════════════════ */
-.p1-body { max-width: 860px; margin: 0 auto; padding: 32px 20px 60px; }
-.p1-intro { text-align: center; margin-bottom: 28px; }
-.p1-intro h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
-.p1-intro p { font-size: 13px; color: var(--dim); margin-top: 4px; }
-
-.conf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
-@media (max-width: 640px) { .conf-grid { grid-template-columns: 1fr; } }
-
-.conf-panel { background: var(--card); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-.conf-panel-hdr { padding: 10px 14px; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #fff; }
-.conf-panel-hdr.w { background: var(--W); }
-.conf-panel-hdr.e { background: var(--E); }
-
-.seed-row { display: grid; grid-template-columns: 28px 1fr 44px; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid #f0f2f4; }
-.seed-row:last-child { border-bottom: none; }
-.seed-num { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 800; text-align: center; color: var(--faint); }
-.seed-inp { padding: 5px 8px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 500; color: var(--text); background: #fafbfc; outline: none; width: 100%; transition: border-color .15s; }
-.seed-inp:focus { border-color: #999; background: #fff; }
-.abbr-inp { padding: 5px 4px; border: 1px solid var(--border); border-radius: 2px; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; text-align: center; color: var(--dim); background: #fafbfc; outline: none; width: 100%; }
-
-.p1-footer { display: flex; justify-content: center; }
 
 /* ═══════════════════════════════════════════════
    PAGE 2 — LIVE BRACKET
@@ -202,6 +186,21 @@ html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', s
 #toast { position: fixed; bottom: 20px; right: 20px; background: #222; color: #fff; font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 1px; padding: 9px 16px; border-radius: 2px; transform: translateY(50px); opacity: 0; transition: all .25s; z-index: 9999; }
 #toast.show { transform: translateY(0); opacity: 1; }
 
+/* ═══ COMPLETE BANNER ══════════════════════════ */
+#complete-banner {
+  display: none;
+  background: linear-gradient(135deg, #1a1d24, #2a3a5c);
+  color: #fff;
+  text-align: center;
+  padding: 12px 24px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1px;
+  border-bottom: 2px solid var(--gold);
+}
+#complete-banner.show { display: block; }
+#complete-banner strong { color: var(--gold); }
+
 @media print {
   .hdr { display: none !important; }
   #page2 .bracket-wrap { padding: 0; }
@@ -217,7 +216,9 @@ html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', s
   <div class="hdr-right" id="hdr-right"></div>
 </div>
 
-
+<div id="complete-banner">
+  🏆 <strong>Bracket complete!</strong> — Use the <strong>Generate Link</strong> button to save and share your picks.
+</div>
 
 <!-- PAGE 2: LIVE BRACKET -->
 <div class="page on" id="page2">
@@ -252,86 +253,53 @@ function mkPicks() {
 }
 
 // ════════════════════════════════════════════════
-// INIT
+// INIT — always fresh, no localStorage
 // ════════════════════════════════════════════════
 function init() {
   teams.west = DEF.west.map((n,i) => ({ seed:i+1, name:n, abbr:toAbbr(n) }));
   teams.east = DEF.east.map((n,i) => ({ seed:i+1, name:n, abbr:toAbbr(n) }));
   picks = mkPicks();
-  setHdr(2);
-  goPage(2);
+
+  // Only load from URL hash if it's a share link (has the 'share' marker)
+  const h = location.hash.slice(1);
+  if (h) {
+    try {
+      const d = JSON.parse(atob(h));
+      if (d._share && d.teams && d.picks) {
+        teams = d.teams;
+        picks = d.picks;
+        // Clear hash so a reload starts fresh again
+        history.replaceState(null, '', location.pathname);
+        toast('Shared bracket loaded!');
+      }
+    } catch(e) {}
+  }
+
+  setHdr();
+  renderBracket();
 }
 
 function toAbbr(name) {
   const w = name.split(' '); return w[w.length-1].slice(0,3).toUpperCase();
 }
-function shortName(name) {
-  if (!name) return '?';
-  const w = name.split(' '); return w[w.length-1];
-}
-
-function tryLoad() {
-  try {
-    const h = location.hash.slice(1);
-    if (h) { const d = JSON.parse(atob(h)); if(d.teams) teams=d.teams; if(d.picks) picks=d.picks; return; }
-    const s = localStorage.getItem('whl26b');
-    if (s) { const d = JSON.parse(s); if(d.teams) teams=d.teams; if(d.picks) picks=d.picks; }
-  } catch(e){}
-}
-function save() {
-  // picks are not persisted — bracket always starts fresh on load
-}
 
 // ════════════════════════════════════════════════
 // HEADER
 // ════════════════════════════════════════════════
-function setHdr(page) {
+function setHdr() {
   const el = document.getElementById('hdr-right');
   el.innerHTML = `
     <div class="prog"><span id="prog-txt">0/15</span><div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div></div>
+    <button class="btn share" id="share-btn" onclick="generateLink()">🔗 Generate Link</button>
     <button class="btn go" onclick="exportPNG()">⬇ PNG</button>
     <button class="btn red" onclick="doReset()">↺ Reset</button>`;
-}
-
-function goPage(n) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-  document.getElementById('page'+n).classList.add('on');
-  setHdr(n);
-  window.scrollTo(0,0);
-  if (n === 2) renderBracket();
-}
-
-function startBracket() {
-  ['west','east'].forEach(conf => {
-    document.querySelectorAll(`#${conf}-seeds .seed-row`).forEach((row,i) => {
-      const ins = row.querySelectorAll('input');
-      const name = ins[0].value.trim() || `Seed ${i+1}`;
-      teams[conf][i] = { seed:i+1, name, abbr: ins[1].value.trim().toUpperCase() || toAbbr(name) };
-    });
-  });
-  save();
-  goPage(2);
 }
 
 function doReset() {
   if (!confirm('Reset all picks?')) return;
   picks = mkPicks();
-  save(); renderBracket(); toast('Bracket reset');
-}
-
-// ════════════════════════════════════════════════
-// SETUP UI
-// ════════════════════════════════════════════════
-function buildSetupUI() {
-  ['west','east'].forEach(conf => {
-    const el = document.getElementById(`${conf}-seeds`);
-    el.innerHTML = teams[conf].map((t,i) => `
-      <div class="seed-row">
-        <div class="seed-num">${i+1}</div>
-        <input class="seed-inp" type="text" value="${esc(t.name)}" placeholder="Team name">
-        <input class="abbr-inp" type="text" value="${esc(t.abbr)}" maxlength="4" placeholder="ABR">
-      </div>`).join('');
-  });
+  renderBracket();
+  toast('Bracket reset');
 }
 
 // ════════════════════════════════════════════════
@@ -352,7 +320,6 @@ function r1Win(conf, i) {
   return p.winner===a.name?a : p.winner===b.name?b : null;
 }
 
-// WHL Reseeding: sort 4 R1 winners by original seed, match 1v4 and 2v3
 function r2Matches(conf) {
   const ws = [0,1,2,3].map(i => r1Win(conf,i));
   if (ws.some(w=>!w)) return null;
@@ -387,12 +354,70 @@ function finWin() {
 }
 
 // ════════════════════════════════════════════════
+// PROGRESS — returns count of fully completed series
+// ════════════════════════════════════════════════
+function countDone() {
+  let done = 0;
+  ['west','east'].forEach(c => ['r1','r2','r3'].forEach(r =>
+    picks[c][r].forEach(p => { if (p && p.winner && p.games) done++; })
+  ));
+  if (picks.final[0] && picks.final[0].winner && picks.final[0].games) done++;
+  return done;
+}
+
+function updateProgress() {
+  const done = countDone();
+  const pt = document.getElementById('prog-txt');
+  const pf = document.getElementById('prog-fill');
+  const shareBtn = document.getElementById('share-btn');
+  const banner = document.getElementById('complete-banner');
+
+  if (pt) pt.textContent = `${done}/15`;
+  if (pf) pf.style.width = `${(done/15)*100}%`;
+
+  const complete = done === 15;
+
+  // Show/hide Generate Link button
+  if (shareBtn) {
+    if (complete) shareBtn.classList.add('visible');
+    else shareBtn.classList.remove('visible');
+  }
+
+  // Show/hide complete banner
+  if (banner) {
+    if (complete) banner.classList.add('show');
+    else banner.classList.remove('show');
+  }
+}
+
+// ════════════════════════════════════════════════
+// GENERATE SHARE LINK — only when bracket is complete
+// ════════════════════════════════════════════════
+function generateLink() {
+  if (countDone() < 15) {
+    toast('Fill out all 15 series first!');
+    return;
+  }
+  try {
+    const payload = { _share: true, teams, picks };
+    const enc = btoa(JSON.stringify(payload));
+    const url = location.href.split('#')[0] + '#' + enc;
+    navigator.clipboard.writeText(url)
+      .then(() => toast('📋 Link copied to clipboard!'))
+      .catch(() => {
+        prompt('Copy this link to share your bracket:', url);
+      });
+  } catch(e) {
+    toast('Could not generate link');
+  }
+}
+
+// ════════════════════════════════════════════════
 // RENDER
 // ════════════════════════════════════════════════
 function renderBracket() {
-  const G1 = 14; // gap between R1 cards
+  const G1 = 14;
 
-  // header row
   const hRow = document.getElementById('b-hdr-row');
   hRow.innerHTML = '';
   [['Round 1','cw'],['Round 2','cw'],['Conf. Final','cw'],['Championship','cc'],['Conf. Final','ce'],['Round 2','ce'],['Round 1','ce']]
@@ -410,7 +435,7 @@ function renderBracket() {
   const fm  = finMatch();
   const fwin= finWin();
 
-  // West R1 — cards get data-id for measuring
+  // West R1
   const colW1 = buildCol([
     {s:0,  m:r1Match('west',0), p:picks.west.r1[0], conf:'west', round:'r1', idx:0, id:'w-r1-0'},
     {s:G1, m:r1Match('west',1), p:picks.west.r1[1], conf:'west', round:'r1', idx:1, id:'w-r1-1'},
@@ -419,7 +444,7 @@ function renderBracket() {
   ]);
   grid.appendChild(colW1);
 
-  // West R2 — spacers get data-spacer ids for post-render adjustment
+  // West R2
   const colW2 = buildCol(r2w ? [
     {s:0, m:r2w[0], p:picks.west.r2[0], conf:'west', round:'r2', idx:0, id:'w-r2-0', spacerId:'sp-w-r2-0'},
     {s:0, m:r2w[1], p:picks.west.r2[1], conf:'west', round:'r2', idx:1, id:'w-r2-1', spacerId:'sp-w-r2-1'},
@@ -479,7 +504,7 @@ function renderBracket() {
 
   updateProgress();
 
-  // Multi-pass layout: each pass waits for reflow before measuring positions set in previous pass.
+  // Multi-pass layout alignment
   function midOf(id) {
     const el = document.getElementById(id);
     if (!el) return null;
@@ -503,22 +528,15 @@ function renderBracket() {
     setSpacerH(spacerId, (midA + midB) / 2 - card.offsetHeight / 2 - prevBottom);
   }
 
-  // Pass 1: R2[0] spacers depend only on R1 (fixed positions)
   requestAnimationFrame(() => {
     centerCard('sp-w-r2-0', 'w-r2-0', midOf('w-r1-0'), midOf('w-r1-1'));
     centerCard('sp-e-r2-0', 'e-r2-0', midOf('e-r1-0'), midOf('e-r1-1'));
-
-    // Pass 2: R2[1] spacers depend on R2[0] having reflowed
     requestAnimationFrame(() => {
       centerCardAfterPrev('sp-w-r2-1', 'w-r2-1', 'w-r2-0', midOf('w-r1-2'), midOf('w-r1-3'));
       centerCardAfterPrev('sp-e-r2-1', 'e-r2-1', 'e-r2-0', midOf('e-r1-2'), midOf('e-r1-3'));
-
-      // Pass 3: R3 spacers depend on R2[1] having reflowed
       requestAnimationFrame(() => {
         centerCard('sp-w-r3-0', 'w-r3-0', midOf('w-r2-0'), midOf('w-r2-1'));
         centerCard('sp-e-r3-0', 'e-r3-0', midOf('e-r2-0'), midOf('e-r2-1'));
-
-        // Pass 4: Champ depends on R3 having reflowed
         requestAnimationFrame(() => {
           const champCard = document.getElementById('champ-card');
           if (champCard) {
@@ -581,11 +599,8 @@ function makeTR(team, p, conf, round, idx, colorSide) {
 }
 
 function makeGR(conf, round, idx, p) {
-  // If winner+games both picked, no footer needed — games show on the winner row badge
   if (p && p.winner && p.games) return null;
-
   const ft=mkEl('div','sc-ft');
-  // No winner yet — just show game buttons (no label needed if no winner picked either)
   const lb=mkEl('span','glab'); lb.textContent='Games'; ft.appendChild(lb);
   const gp=mkEl('div','gpick');
   [4,5,6,7].forEach(g=>{
@@ -610,14 +625,14 @@ function doPick(conf, round, idx, name) {
   const s = getStore(conf, round, idx);
   if (s.winner===name) { delete s.winner; cascade(conf,round,idx); }
   else { const prev=s.winner; s.winner=name; if(prev&&prev!==name) cascade(conf,round,idx); }
-  save(); renderBracket();
+  renderBracket();
 }
 
 function doGames(conf, round, idx, g) {
   const s=getStore(conf,round,idx);
   s.games = (s.games===g) ? undefined : g;
   if (!s.games) delete s.games;
-  save(); renderBracket();
+  renderBracket();
 }
 
 function cascade(conf, round, idx) {
@@ -627,35 +642,22 @@ function cascade(conf, round, idx) {
   else if (round==='r3') { picks.final=[{}]; }
 }
 
-function updateProgress() {
-  let done=0;
-  ['west','east'].forEach(c=>['r1','r2','r3'].forEach(r=>picks[c][r].forEach(p=>{if(p&&p.winner&&p.games)done++;})));
-  if(picks.final[0]&&picks.final[0].winner&&picks.final[0].games) done++;
-  const pt=document.getElementById('prog-txt'), pf=document.getElementById('prog-fill');
-  if(pt) pt.textContent=`${done}/15`;
-  if(pf) pf.style.width=`${(done/15)*100}%`;
-}
-
 // ════════════════════════════════════════════════
-// EXPORT / SHARE
+// EXPORT
 // ════════════════════════════════════════════════
 function exportPNG() {
   toast('Generating…');
   const hdr=document.querySelector('.hdr');
+  const banner=document.getElementById('complete-banner');
   hdr.style.display='none';
+  banner.style.display='none';
   html2canvas(document.getElementById('page2'),{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false})
     .then(canvas=>{
       hdr.style.display='';
+      banner.style.display='';
       const a=document.createElement('a'); a.download='whl-2026-bracket.png'; a.href=canvas.toDataURL(); a.click();
       toast('Saved!');
-    }).catch(()=>{ hdr.style.display=''; toast('Use Print instead'); });
-}
-function shareURL() {
-  try {
-    const enc=btoa(JSON.stringify({teams,picks}));
-    const url=location.href.split('#')[0]+'#'+enc;
-    navigator.clipboard.writeText(url).then(()=>toast('Link copied!')).catch(()=>prompt('Copy:',url));
-  } catch(e){ toast('Could not generate link'); }
+    }).catch(()=>{ hdr.style.display=''; banner.style.display=''; toast('Use Print instead'); });
 }
 
 // ════════════════════════════════════════════════
@@ -664,15 +666,17 @@ function shareURL() {
 function mkEl(tag, cls='') {
   const e=document.createElement(tag); if(cls) e.className=cls.trim(); return e;
 }
-function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
 function toast(msg) {
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
 // ════════════════════════════════════════════════
-// BOOT
+// BOOT — always fresh
 // ════════════════════════════════════════════════
+// Clear any stale localStorage from previous versions
+localStorage.removeItem('whl26b');
+
 init();
 </script>
 </body>
