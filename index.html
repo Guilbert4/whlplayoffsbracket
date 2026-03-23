@@ -261,7 +261,6 @@ function init() {
   teams.west = DEF.west.map((n,i) => ({ seed:i+1, name:n, abbr:toAbbr(n) }));
   teams.east = DEF.east.map((n,i) => ({ seed:i+1, name:n, abbr:toAbbr(n) }));
   picks = mkPicks();
-  tryLoad();
   setHdr(2);
   goPage(2);
 }
@@ -679,6 +678,8 @@ function toast(msg) {
 // ════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════
+// Clear the hash so every page load starts with a fresh bracket
+if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 init();
 </script>
 </body>
