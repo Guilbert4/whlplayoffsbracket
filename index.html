@@ -260,15 +260,13 @@ function init() {
   teams.east = DEF.east.map((n,i) => ({ seed:i+1, name:n, abbr:toAbbr(n) }));
   picks = mkPicks();
 
-  // Only load from URL hash if it's a share link (has the 'share' marker)
+  // Load from URL hash if it's a compact share link
   const h = location.hash.slice(1);
   if (h) {
     try {
-      const d = JSON.parse(atob(h));
-      if (d._share && d.teams && d.picks) {
-        teams = d.teams;
-        picks = d.picks;
-        // Clear hash so a reload starts fresh again
+      const loaded = decodeCompact(h);
+      if (loaded) {
+        picks = loaded;
         history.replaceState(null, '', location.pathname);
         toast('Shared bracket loaded!');
       }
@@ -391,7 +389,99 @@ function updateProgress() {
 }
 
 // ════════════════════════════════════════════════
-// GENERATE SHARE LINK — only when bracket is complete
+// COMPACT ENCODE / DECODE
+// Stores only seed numbers + game counts — no team names.
+// Format: { wr1:[[seed,games]x4], wr2:[[seed,games]x2], wr3:[[seed,games]],
+//           er1:..., er2:..., er3:..., f:[side,games] }
+// side: 0=west conf winner, 1=east conf winner
+// ════════════════════════════════════════════════
+function encodeCompact() {
+  function seedOf(name, conf) {
+    const t = teams[conf].find(t => t.name === name);
+    return t ? t.seed : 0;
+  }
+  function entry(p, conf) {
+    if (!p || !p.winner || !p.games) return [0, 0];
+    return [seedOf(p.winner, conf), p.games];
+  }
+  // For final, store which side won: 0=west, 1=east
+  const ww = r3Win('west'), ew = r3Win('east');
+  const fp = picks.final[0];
+  let fSide = 0, fGames = 0;
+  if (fp && fp.winner && fp.games) {
+    fSide = (ww && fp.winner === ww.name) ? 0 : 1;
+    fGames = fp.games;
+  }
+  const c = {
+    wr1: picks.west.r1.map(p => entry(p, 'west')),
+    wr2: picks.west.r2.map(p => entry(p, 'west')),
+    wr3: picks.west.r3.map(p => entry(p, 'west')),
+    er1: picks.east.r1.map(p => entry(p, 'east')),
+    er2: picks.east.r2.map(p => entry(p, 'east')),
+    er3: picks.east.r3.map(p => entry(p, 'east')),
+    f:   [fSide, fGames]
+  };
+  return btoa(JSON.stringify(c));
+}
+
+function decodeCompact(hash) {
+  const c = JSON.parse(atob(hash));
+  if (!c.wr1 || !c.er1 || !c.f) return null;
+
+  const newPicks = mkPicks();
+
+  // Restore r1 — teams are fixed by seed
+  ['west','east'].forEach(conf => {
+    const key = conf === 'west' ? 'wr1' : 'er1';
+    newPicks[conf].r1 = c[key].map(([seed, games]) => {
+      if (!seed || !games) return {};
+      const t = teams[conf].find(t => t.seed === seed);
+      return t ? { winner: t.name, games } : {};
+    });
+  });
+
+  // Apply r1 so r2Matches() resolves correctly
+  picks = newPicks;
+
+  // Restore r2
+  ['west','east'].forEach(conf => {
+    const key = conf === 'west' ? 'wr2' : 'er2';
+    const ms = r2Matches(conf);
+    if (!ms) return;
+    newPicks[conf].r2 = c[key].map(([seed, games], i) => {
+      if (!seed || !games) return {};
+      const t = ms[i].find(t => t.seed === seed);
+      return t ? { winner: t.name, games } : {};
+    });
+  });
+
+  picks = newPicks;
+
+  // Restore r3
+  ['west','east'].forEach(conf => {
+    const key = conf === 'west' ? 'wr3' : 'er3';
+    const m = r3Match(conf);
+    if (!m) return;
+    const [seed, games] = c[key][0];
+    if (!seed || !games) return;
+    const t = m.find(t => t.seed === seed);
+    newPicks[conf].r3[0] = t ? { winner: t.name, games } : {};
+  });
+
+  picks = newPicks;
+
+  // Restore final
+  const [fSide, fGames] = c.f;
+  if (fGames) {
+    const fw = fSide === 0 ? r3Win('west') : r3Win('east');
+    if (fw) newPicks.final[0] = { winner: fw.name, games: fGames };
+  }
+
+  return newPicks;
+}
+
+// ════════════════════════════════════════════════
+// GENERATE SHARE LINK — compact, under 300 chars, no shortener needed
 // ════════════════════════════════════════════════
 function generateLink() {
   if (countDone() < 15) {
@@ -399,14 +489,11 @@ function generateLink() {
     return;
   }
   try {
-    const payload = { _share: true, teams, picks };
-    const enc = btoa(JSON.stringify(payload));
+    const enc = encodeCompact();
     const url = location.href.split('#')[0] + '#' + enc;
     navigator.clipboard.writeText(url)
-      .then(() => toast('📋 Link copied to clipboard!'))
-      .catch(() => {
-        prompt('Copy this link to share your bracket:', url);
-      });
+      .then(() => toast(`📋 Link copied! (${url.length} chars)`))
+      .catch(() => prompt('Copy your bracket link:', url));
   } catch(e) {
     toast('Could not generate link');
   }
