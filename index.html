@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,10 +61,6 @@ html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', s
 .btn.go:hover { background: #a8780e; }
 .btn.red { color: #c44; border-color: #f0c0c0; }
 .btn.red:hover { background: #fff5f5; border-color: #c44; }
-.btn.lnk { background: var(--E); color: #fff; border-color: var(--E); }
-.btn.lnk:hover { background: #163d85; }
-.btn.lnk:disabled { background: #c8cdd5; border-color: #c8cdd5; color: #fff; cursor: not-allowed; opacity: .6; }
-.btn.lnk:disabled:hover { background: #c8cdd5; }
 
 /* progress */
 .prog { display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--dim); }
@@ -276,7 +273,7 @@ function shortName(name) {
 function tryLoad() {
   try {
     const h = location.hash.slice(1);
-    if (h) { const d = JSON.parse(decodeURIComponent(escape(atob(h)))); if(d.teams) teams=d.teams; if(d.picks) picks=d.picks; return; }
+    if (h) { const d = JSON.parse(atob(h)); if(d.teams) teams=d.teams; if(d.picks) picks=d.picks; return; }
     const s = localStorage.getItem('whl26b');
     if (s) { const d = JSON.parse(s); if(d.teams) teams=d.teams; if(d.picks) picks=d.picks; }
   } catch(e){}
@@ -292,7 +289,6 @@ function setHdr(page) {
   const el = document.getElementById('hdr-right');
   el.innerHTML = `
     <div class="prog"><span id="prog-txt">0/15</span><div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div></div>
-    <button class="btn lnk" id="link-btn" onclick="shareURL()" disabled title="Fill out the entire bracket to generate a link">🔗 Generate Link</button>
     <button class="btn go" onclick="exportPNG()">⬇ PNG</button>
     <button class="btn red" onclick="doReset()">↺ Reset</button>`;
 }
@@ -483,7 +479,7 @@ function renderBracket() {
 
   updateProgress();
 
-  // Multi-pass layout
+  // Multi-pass layout: each pass waits for reflow before measuring positions set in previous pass.
   function midOf(id) {
     const el = document.getElementById(id);
     if (!el) return null;
@@ -507,18 +503,22 @@ function renderBracket() {
     setSpacerH(spacerId, (midA + midB) / 2 - card.offsetHeight / 2 - prevBottom);
   }
 
+  // Pass 1: R2[0] spacers depend only on R1 (fixed positions)
   requestAnimationFrame(() => {
     centerCard('sp-w-r2-0', 'w-r2-0', midOf('w-r1-0'), midOf('w-r1-1'));
     centerCard('sp-e-r2-0', 'e-r2-0', midOf('e-r1-0'), midOf('e-r1-1'));
 
+    // Pass 2: R2[1] spacers depend on R2[0] having reflowed
     requestAnimationFrame(() => {
       centerCardAfterPrev('sp-w-r2-1', 'w-r2-1', 'w-r2-0', midOf('w-r1-2'), midOf('w-r1-3'));
       centerCardAfterPrev('sp-e-r2-1', 'e-r2-1', 'e-r2-0', midOf('e-r1-2'), midOf('e-r1-3'));
 
+      // Pass 3: R3 spacers depend on R2[1] having reflowed
       requestAnimationFrame(() => {
         centerCard('sp-w-r3-0', 'w-r3-0', midOf('w-r2-0'), midOf('w-r2-1'));
         centerCard('sp-e-r3-0', 'e-r3-0', midOf('e-r2-0'), midOf('e-r2-1'));
 
+        // Pass 4: Champ depends on R3 having reflowed
         requestAnimationFrame(() => {
           const champCard = document.getElementById('champ-card');
           if (champCard) {
@@ -581,9 +581,11 @@ function makeTR(team, p, conf, round, idx, colorSide) {
 }
 
 function makeGR(conf, round, idx, p) {
+  // If winner+games both picked, no footer needed — games show on the winner row badge
   if (p && p.winner && p.games) return null;
 
   const ft=mkEl('div','sc-ft');
+  // No winner yet — just show game buttons (no label needed if no winner picked either)
   const lb=mkEl('span','glab'); lb.textContent='Games'; ft.appendChild(lb);
   const gp=mkEl('div','gpick');
   [4,5,6,7].forEach(g=>{
@@ -632,12 +634,6 @@ function updateProgress() {
   const pt=document.getElementById('prog-txt'), pf=document.getElementById('prog-fill');
   if(pt) pt.textContent=`${done}/15`;
   if(pf) pf.style.width=`${(done/15)*100}%`;
-  const lb=document.getElementById('link-btn');
-  if(lb) {
-    const complete = done===15;
-    lb.disabled = !complete;
-    lb.title = complete ? 'Copy shareable link' : `Fill out the entire bracket to generate a link (${done}/15 complete)`;
-  }
 }
 
 // ════════════════════════════════════════════════
@@ -654,12 +650,11 @@ function exportPNG() {
       toast('Saved!');
     }).catch(()=>{ hdr.style.display=''; toast('Use Print instead'); });
 }
-
 function shareURL() {
   try {
-    const enc=btoa(unescape(encodeURIComponent(JSON.stringify({teams,picks}))));
+    const enc=btoa(JSON.stringify({teams,picks}));
     const url=location.href.split('#')[0]+'#'+enc;
-    navigator.clipboard.writeText(url).then(()=>toast('Link copied!')).catch(()=>prompt('Copy this link:',url));
+    navigator.clipboard.writeText(url).then(()=>toast('Link copied!')).catch(()=>prompt('Copy:',url));
   } catch(e){ toast('Could not generate link'); }
 }
 
@@ -678,8 +673,6 @@ function toast(msg) {
 // ════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════
-// Clear the hash so every page load starts with a fresh bracket
-if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 init();
 </script>
 </body>
